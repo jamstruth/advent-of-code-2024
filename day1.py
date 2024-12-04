@@ -1,7 +1,7 @@
 
 def parse_input_file():
   lines = []
-  with open("day1_input", "r") as input:
+  with open("inputs/day1_input", "r") as input:
     lines = input.readlines()
   left_list = []
   right_list = []

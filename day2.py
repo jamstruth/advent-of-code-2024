@@ -1,7 +1,7 @@
 import pprint
 
 def parse_input_file():
-  with open("day2_input", "r") as input:
+  with open("inputs/day2_input", "r") as input:
     lines = input.readlines()
     reports = []
     for line in lines:
@@ -12,7 +12,7 @@ def parse_input_file():
 def determine_report_safety(report):
   ascending = None
   previous_report_num = None
-  for report_num in report:
+  for index, report_num in enumerate(report):
     # If Previous in None we haven't done anything yet
     if previous_report_num is not None:
       difference = previous_report_num - report_num
@@ -27,10 +27,22 @@ def determine_report_safety(report):
     previous_report_num = report_num
   return True
 
-reports = parse_input_file()
-total_safe_reports = 0
-for report in reports:
-  if determine_report_safety(report):
-    total_safe_reports += 1
+def determine_safe_with_dampener(report):
+  for index in range(len(report)):
+    level_removed = report[:]
+    del level_removed[index]
+    if determine_report_safety(level_removed):
+      return True
+  return False
 
-print(f"Total Safe Reports: {total_safe_reports}")
+reports = parse_input_file()
+no_bad_level_reports = 0
+dampened_safe_reports = 0
+for report in reports:
+  if (determine_report_safety(report)):
+    no_bad_level_reports += 1
+  elif (determine_safe_with_dampener(report)):
+    dampened_safe_reports += 1
+
+print(f"Total Safe Reports: {no_bad_level_reports}")
+print(f"Total Safe Reports With Dampener: {no_bad_level_reports + dampened_safe_reports}")
