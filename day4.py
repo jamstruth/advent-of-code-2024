@@ -1,6 +1,6 @@
 from pprint import pprint
 
-INPUT_FILE = "inputs/day4_practice"
+INPUT_FILE = "inputs/day4_input"
 XMAS = 'XMAS'
 SAMX = 'SAMX'
 
@@ -28,9 +28,10 @@ for row in range(total_rows):
         down_string += character_matrix[row+offset][col]
         if(col+offset < total_cols):
           down_right_string += character_matrix[row+offset][col+offset]
-        if(col-offset > 0):
+        if(col-offset >= 0):
           down_left_string += character_matrix[row+offset][col-offset]
     all_strings = [right_string,down_string,down_right_string,down_left_string]
+    print(all_strings)
     for string in all_strings:
       if string == XMAS or string == SAMX:
         total_xmas += 1
