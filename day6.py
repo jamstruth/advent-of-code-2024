@@ -31,31 +31,41 @@ class Map:
     (target_x, target_y) = location
     (x_dim, y_dim) = self.dimensions
     return (target_x >= 0 and target_x < x_dim) and (target_y >= 0 and target_y < y_dim)
+  
+class GuardState:
+  def __init__(self, direction: Direction, location: tuple):
+    self.direction = direction
+    self.location = location
+  
+  def __eq__(self, other):
+    if not isinstance(other, GuardState):
+      # don't attempt to compare against unrelated types
+      return NotImplemented
+    return self.direction == other.direction and self.location == other.location
 
 class Guard:
   def __init__(self, direction: Direction, location: tuple, map: Map):
-    self.start_location = location
-    self.start_direction = direction
     self.direction = direction
     self.location = location
+    self.state_history = [GuardState(direction=self.direction, location=self.direction)]
     self.status = GuardStatus.NORMAL
     self.map = map
 
-  def check_has_looped(self):
-     return self.location == self.start_location and self.direction == self.start_direction
+  def check_has_looped(self, curr_state):
+    for state in self.state_history:
+      if state == curr_state:
+        return True
+    return False
 
   def move(self):
-    if(self.status == GuardStatus.NORMAL):
-      target_location = self.determine_target_move()
-      if (self.map.is_coord_on_map(target_location)):
-        self.perform_move(target_location)
-        if self.check_has_looped():
-          print('Guard looped!')
-          self.status = GuardStatus.LOOPED
-      else:
-        print('Moving Off Map')
-        self.status = GuardStatus.OFF_MAP
-        self.location = None
+    target_location = self.determine_target_move()
+    print(f"Attempting to move to {target_location}")
+    if (self.map.is_coord_on_map(target_location)):
+      self.perform_move(target_location)
+    else:
+      print('Moving Off Map')
+      self.status = GuardStatus.OFF_MAP
+      self.location = None
 
   def perform_move(self, target_location):
     if (self.map.is_coord_obstacle(target_location)):
@@ -64,6 +74,12 @@ class Guard:
       return self.move()
     else:
       self.location = target_location
+      curr_state = GuardState(self.direction, self.location)
+      if self.check_has_looped(curr_state):
+        print('Guard looped!')
+        self.status = GuardStatus.LOOPED
+      else:
+        self.state_history.append(curr_state)
 
   def determine_target_move(self):
     match self.direction:
