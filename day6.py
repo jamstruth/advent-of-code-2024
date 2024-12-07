@@ -12,54 +12,38 @@ class Direction(Enum):
   SOUTH = 3
   WEST = 4
 
-class Obstacle:
-  def __init__(self, location: tuple):
-    self.location = location
-
 class Map:
-  def __init__(self, dimensions: tuple, obstacles: list):
+  def __init__(self, dimensions: tuple, obstacles: dict):
     self.dimensions = dimensions
     self.obstacles = obstacles
 
   def is_coord_obstacle(self, location):
-    for obstacle in self.obstacles:
-      if obstacle.location == location:
-        return True
-    return False
+    return self.obstacles.get(location, False)
   
   def is_coord_on_map(self, location):
     (target_x, target_y) = location
     (x_dim, y_dim) = self.dimensions
     return (target_x >= 0 and target_x < x_dim) and (target_y >= 0 and target_y < y_dim)
-  
-class GuardState:
-  def __init__(self, direction: Direction, location: tuple):
-    self.direction = direction
-    self.location = location
-  
-  def __eq__(self, other):
-    if not isinstance(other, GuardState):
-      # don't attempt to compare against unrelated types
-      return NotImplemented
-    return self.direction == other.direction and self.location == other.location
 
 class Guard:
   def __init__(self, direction: Direction, location: tuple, map: Map):
+    self.start_direction = direction
+    self.start_location = location
     self.direction = direction
     self.location = location
-    self.state_history = [GuardState(direction=self.direction, location=self.direction)]
+    self.state_history = { f"{self.direction}|{self.location}": True }
     self.status = GuardStatus.NORMAL
     self.map = map
+  
+  def reset(self):
+    self.location = self.start_location
+    self.direction = self.start_direction
 
-  def check_has_looped(self, curr_state):
-    for state in self.state_history:
-      if state == curr_state:
-        return True
-    return False
+  def check_has_looped(self):
+    return self.state_history.get(f"{self.direction}|{self.location}", False)
 
   def move(self):
     target_location = self.determine_target_move()
-    print(f"Attempting to move to {target_location}")
     if (self.map.is_coord_on_map(target_location)):
       self.perform_move(target_location)
     else:
@@ -74,12 +58,11 @@ class Guard:
       return self.move()
     else:
       self.location = target_location
-      curr_state = GuardState(self.direction, self.location)
-      if self.check_has_looped(curr_state):
+      if self.check_has_looped():
         print('Guard looped!')
         self.status = GuardStatus.LOOPED
       else:
-        self.state_history.append(curr_state)
+        self.state_history[f"{self.direction}|{self.location}"] = True
 
   def determine_target_move(self):
     match self.direction:
@@ -123,24 +106,28 @@ def parse_input_to_guard(input_file):
     guard_x = None
     guard_y = None
     guard_dir = None
-    obstacles = []
+    obstacles = {}
     for y_coord, line in enumerate(lines):
       for x_coord, char in enumerate(line):
         if char == '#':
           # Build Obstacle
-          obstacles.append(Obstacle(location=(x_coord, y_coord)))
+          obstacles[(x_coord, y_coord)] = True
           continue
         if char in guard_symbols:
           guard_x = x_coord
           guard_y = y_coord
           guard_dir = determine_guard_dir(char)
+    print(obstacles)
     map = Map(dimensions=(x_dim, y_dim), obstacles=obstacles)
     return Guard(direction=guard_dir, location=(guard_x, guard_y), map=map)
 
 
-INPUT_FILE = 'inputs/day6_practice'
+INPUT_FILE = 'inputs/day6_input'
 guard = parse_input_to_guard(INPUT_FILE)
 guard_locations = {guard.location}
+
+print(f"{guard.map.obstacles}")
+print(f"{guard.map.is_coord_obstacle((4, 0))}")
 
 # Move guard until his status is OFF_MAP
 # Note his movements
@@ -155,13 +142,15 @@ print(f"Guard Visited {len(guard_locations)} unique locations")
 initial_guard = parse_input_to_guard(INPUT_FILE)
 loop_count = 0
 (x_dim, y_dim) = initial_guard.map.dimensions
-for x in range(x_dim):
-  for y in range(y_dim):
+for y in range(y_dim):
+  for x in range(x_dim):
+    print(f"Guard {(y*x_dim)+x}")
     print(f"Trying obstacle at {(x, y)}")
     if(initial_guard.location == (x, y) or initial_guard.map.is_coord_obstacle((x, y))):
       continue # Skip any existing obstacles and the guard
-    new_obstacles = [Obstacle(location=(x, y))]
-    curr_map = Map(dimensions=initial_guard.map.dimensions, obstacles=initial_guard.map.obstacles[:]+new_obstacles)
+    new_obstacles = initial_guard.map.obstacles.copy()
+    new_obstacles[(x, y)] = True
+    curr_map = Map(dimensions=initial_guard.map.dimensions, obstacles=new_obstacles)
     curr_guard = Guard(direction=initial_guard.direction, location=initial_guard.location, map=curr_map)
     while(curr_guard.status == GuardStatus.NORMAL):
       # print(f"Current Guard at: {curr_guard.location}")
